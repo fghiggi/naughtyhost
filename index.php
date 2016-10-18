@@ -11,13 +11,15 @@ $application->response->headers->set('Content-Type', 'application/json');
 
 $application->get('/',function (){
    
-     echo json_encode("bienvenue");
+     echo json_encode("it's alive!");
 });
 
 
 $application->get('/clientes', 'get_clientes');
 
 $application->post('/clientes', 'post_http');
+
+$application->put('/clientes/:id/', 'put_http');
 
 
 function    get_clientes()
@@ -61,16 +63,10 @@ function    post_http()
     $senhaSenha = sha1($params_arr['$senhaSenha']);
     $plano = $params_arr['plano'];
     
-   /* $dominio = $json->{'dominio'};
-    $email = $json->{'email'};
-    $password = sha1($json->{'senhaMysql'});
-    $password = sha1($json->{'$senhaRoot'});
-    $password = sha1($json->{'$senhaFtp'});
-    $password = sha1($json->{'$senhaSenha'});
-    $plano = $json->{'plano'};*/
+    $uuid = getUUID();
 
     try {
-        $sql = "INSERT INTO clientes(host, email, senhamysql, senharoot, senhaftp, senhasenha, plano) VALUES('$dominio','$email','$senhaMysql','$senhaRoot','$senhaFtp', '$senhaSenha', '$plano') ";
+        $sql = "INSERT INTO clientes(uuid, host, email, senhamysql, senharoot, senhaftp, senhasenha, plano) VALUES('$uuid', '$dominio','$email','$senhaMysql','$senhaRoot','$senhaFtp', '$senhaSenha', '$plano') ";
         
         $dbCon = getConnection();
         
@@ -80,185 +76,84 @@ function    post_http()
         
         $dbCon = null;
         
-        echo('{"status": 200,"message": "' . $uniqueId . '"}');
+        echo('{"status": 200,"message": "' . $uuid . '"}');
     } catch (PDOException $e) {
         $application->response->setStatus(500);
         
         echo('{"status": 500,"message": "' . $e->getMessage() . '"}');
     }
-}
-/*
-$application->get('/user/:user_id/','authorization','get_user_id');
-$application->get('/user/:user_id','authorization','get_user_id');
-$application->get('/users/:user_id/','authorization','get_user_id');
-$application->get('/users/:user_id','authorization','get_user_id');
-$application->put('/users/:id/','authorization','put_http');
-$application->put('/users/:id','authorization','put_http');
-$application->delete('/users/:id/','authorization','delete_http');
-$application->delete('/users/:id','authorization','delete_http');
-$application->post('/users/','authorization','post_http');
-$application->post('/users','authorization','post_http');
+};
 
-function    authorization() {
-    global $application;
-    global $user_role;
-
-    $test = apache_request_headers();
-    $user = null;
-    $pass = null;
-    if (!array_key_exists('Authorization', $test)) {
-        http_response_code(401);
-        $tab = array('status' => 401, 'message' => 'Unauthorized');
-        echo json_encode($tab);
-        exit;
-    }
-    if (preg_match_all('/(Basic) (.*)/', $test['Authorization'], $return)) {
-        $return_decode = base64_decode($return[2][0]);
-        preg_match_all('/(.*):(.*)/', $return_decode, $return);
-        if (isset($return[1][0]) || isset($return[2][0])) {
-            $user = $return[1][0];
-            $pass = $return[2][0];
-        }
-    }
-    if (!preg_match_all('/(Basic) (.*)/', $test['Authorization'], $return)) {
-        $return_decode = $test['Authorization'];
-        preg_match_all('/(.*):(.*)/', $return_decode, $return);
-        if (isset($return[1][0]) || isset($return[2][0])) {
-            $user = $return[1][0];
-            $pass = $return[2][0];
-        }
-    }
-    if ($user == null || $pass == null) {
-        http_response_code(401);
-        $tab = array('status' => 401, 'message' => 'Unauthorized');
-        echo json_encode($tab);
-        exit;
-    }
-    $sql0 = "Select * FROM user WHERE email='$user'";
-
-    $db = getConnection();
-    $stmt = $db->query($sql0);
-    $users = $stmt->fetchAll(PDO::FETCH_OBJ);
-    $pass_sha1 = sha1($pass);
-    if (isset($users[0]->password) && $users[0]->password == $pass_sha1) {
-        $user_role = $users[0]->role;
-    }
-    else {
-        http_response_code(401);
-        $tab = array('status' => 401, 'message' => 'Unauthorized');
-        echo json_encode($tab);
-        $application->stop();
-    }
-}
-
-
-function    put_http($id)
+function    put_http($uuid)
 {
-    global $user_role;
-    if ($user_role != "admin") {
-        http_response_code(401);
-        $tab = array('status' => 401, 'message' => 'Unauthorized');
-        echo json_encode($tab, JSON_PRETTY_PRINT);
-        exit;
-    }
-    $sql0 = "select * FROM user WHERE id='$id' ";
+    $sql0 = "select uuid FROM clientes WHERE id='$uuid[0]' ";
+    
     global $application;
+    
     try {
         $db = getConnection();
+        
         $stmt = $db->query($sql0);
-        $info_users = $stmt->fetchAll(PDO::FETCH_OBJ);
+        
+        $info_clientes = $stmt->fetchAll(PDO::FETCH_OBJ);
         $db = null;
-        if ($info_users == null) {
+        
+        if ($info_clientes == null) {
             http_response_code(404);
             $tab = array('status' => 404, 'message' => 'not found');
             echo json_encode($tab);
             exit;
         }
-        if ($info_users[0]->role == "admin") {
-            http_response_code(401);
-            $tab = array('status' => 401, 'message' => 'it is a administrator');
-            echo json_encode($tab);
-            exit;
-        }
     } catch (PDOException $e) {
         $application->response->setStatus(500);
         echo('{"status": 500,"message": "' . $e->getMessage() . '"}');
     }
+    
     $body = $application->request->getBody();
     $json = json_decode($body);
-    if (array_key_exists('email', $json)) {
-        $email = $json->{'email'};
-    }
-    if (array_key_exists('lastname', $json)) {
-        $lastname = $json->{'lastname'};
-    }
-    if (array_key_exists('firstname', $json)) {
-        $firstname = $json->{'firstname'};
-    }
-    if (array_key_exists('password', $json)) {
-        $password = sha1($json->{'password'});
-    }
-    if (array_key_exists('role', $json)) {
-        $role = $json->{'role'};
+    
+    if (array_key_exists('pago', $json)) {
+        $email = $json->{'pago'};
     }
 
-    if (!isset($firstname))
-        $firstname = $info_users[0]->firstname;
-    if (!isset($lastname))
-        $lastname = $info_users[0]->lastname;
-    if (!isset($email))
-        $email = $info_users[0]->email;
-    if (!isset($password))
-        $password = $info_users[0]->password;
-    if (!isset($role))
-        $role = $info_users[0]->role;
+    if (!isset($pago))
+        $pago = $info_users[0]->pago;
 
-    $sql = "UPDATE user SET firstname='$firstname', lastname='$lastname', email='$email', password='$password', role='$role' where id='$id' ";
+    $sql = "UPDATE clientes SET pago='$pago' where uuid='$uuid' ";
+    
     try {
         $db = getConnection();
         $s = $db->prepare($sql);
-        $s->bindParam("id", $id);
-        $s->bindParam("firstname", $firstname);
-        $s->bindParam("lastname", $lastname);
-        $s->bindParam("email", $email);
-        $s->bindParam("password", $password);
-        $s->bindParam("role", $role);
+        
+        $s->bindParam("uuid", $uuid);
+        $s->bindParam("pago", $pago);
+        
         $s->execute();
+        
         echo('{"status": 200,"message": "ok"}');
     } catch (PDOException $e) {
         $application->response->setStatus(500);
+        
         echo('{"status": 500,"message": "' . $e->getMessage() . '"}');
     }
 
 };
 
-function    delete_http($id)
-{
-    global $user_role;
-    if ($user_role != "admin") {
-        http_response_code(401);
-        $tab = array('status' => 401, 'message' => 'Unauthorized');
-        echo json_encode($tab, JSON_PRETTY_PRINT);
-        exit;
-    }
-    $sql = "DELETE FROM user WHERE id=:id";
-    global $application;
+function getUUID(){
     try {
         $db = getConnection();
-        $stmt = $db->prepare($sql);
-        $stmt->bindParam("id", $id);
-        $stmt->execute();
-        $db = null;
-        echo('{"status": 200,"message": "ok"}');
+     
+        $stmt = $db->query("SELECT UUID() as uuid;");
+        
+        $uuid = $stmt->fetchAll(PDO::FETCH_OBJ);
+        
+        return $uuid['uuid'];
     } catch (PDOException $e) {
-        $application->response->setStatus(500);
-        echo('{"status": 500,"message": "' . $e->getMessage() . '"}');
+        return null;
     }
-
 };
-*/
-function getConnection(){
 
+function getConnection(){
     $dbhost = getenv('IP');
     $dbuser = getenv('C9_USER');
     $dbpass = "";
