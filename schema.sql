@@ -13,7 +13,8 @@ CREATE TABLE `clientes` (
   `plano` enum('planoum','planodois', 'planotres') NOT NULL,
   `pago` BOOLEAN DEFAULT FALSE,
   PRIMARY KEY (`uuid`),
-  UNIQUE KEY `email` (`email`)
+  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `host` (`host`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 

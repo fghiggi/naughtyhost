@@ -19,7 +19,7 @@ $application->get('/clientes', 'get_clientes');
 
 $application->post('/clientes', 'post_http');
 
-$application->put('/clientes/:id/', 'put_http');
+$application->put('/clientes', 'put_http');
 
 
 function    get_clientes()
@@ -54,15 +54,15 @@ function    post_http()
     $params_str = urldecode($body);
     
     parse_str($params_str, $params_arr);
-    
-    $dominio = $params_arr['dominio'];
+
+    $dominio = $params_arr['dominio'] . $params_arr['domain'];
     $email = $params_arr['email'];
     $senhaMysql = sha1($params_arr['senhaMysql']);
-    $senhaRoot = sha1($params_arr['$senhaRoot']);
-    $senhaFtp = sha1($params_arr['$senhaFtp']);
-    $senhaSenha = sha1($params_arr['$senhaSenha']);
+    $senhaRoot = sha1($params_arr['senhaRoot']);
+    $senhaFtp = sha1($params_arr['senhaFtp']);
+    $senhaSenha = sha1($params_arr['senhaSenha']);
     $plano = $params_arr['plano'];
-    
+
     $uuid = getUUID();
 
     try {
@@ -76,19 +76,36 @@ function    post_http()
         
         $dbCon = null;
         
-        echo('{"status": 200,"message": "' . $uuid . '"}');
+        echo('{"status": 200,"uuid": "' . $uuid . '", "message":"Plano contratado com sucesso!"}');
+
     } catch (PDOException $e) {
-        $application->response->setStatus(500);
+            
+        $errorCode = $e->getCode();
+
+        if ($errorCode == 23000) {
+            $application->response->setStatus(200);
+            echo('{"status": "409","message": "Esse domínio / email já está sendo utilizado! Tente outro."}');
+        } else {
+            $application->response->setStatus(500);
+            echo('{"status": "500","message": "' . $e->getMessage() . '"}');    
+        }
         
-        echo('{"status": 500,"message": "' . $e->getMessage() . '"}');
     }
 };
 
-function    put_http($uuid)
+function put_http()
 {
-    $sql0 = "select uuid FROM clientes WHERE id='$uuid[0]' ";
-    
     global $application;
+
+    $body = $application->request->getBody();
+    
+    $params_str = urldecode($body);
+    
+    parse_str($params_str, $params_arr);
+
+    $uuid = $params_arr['uuid'];
+
+    $sql0 = "select uuid FROM clientes WHERE uuid='$uuid' ";
     
     try {
         $db = getConnection();
@@ -109,28 +126,17 @@ function    put_http($uuid)
         echo('{"status": 500,"message": "' . $e->getMessage() . '"}');
     }
     
-    $body = $application->request->getBody();
-    $json = json_decode($body);
-    
-    if (array_key_exists('pago', $json)) {
-        $email = $json->{'pago'};
-    }
-
-    if (!isset($pago))
-        $pago = $info_users[0]->pago;
-
-    $sql = "UPDATE clientes SET pago='$pago' where uuid='$uuid' ";
+    $sql = "UPDATE clientes SET pago=1 where uuid='$uuid' ";
     
     try {
         $db = getConnection();
         $s = $db->prepare($sql);
         
         $s->bindParam("uuid", $uuid);
-        $s->bindParam("pago", $pago);
         
         $s->execute();
         
-        echo('{"status": 200,"message": "ok"}');
+        echo('{"status": 200,"message": "Pagamento confirmado!"}');
     } catch (PDOException $e) {
         $application->response->setStatus(500);
         
@@ -146,14 +152,26 @@ function getUUID(){
         $stmt = $db->query("SELECT UUID() as uuid;");
         
         $uuid = $stmt->fetchAll(PDO::FETCH_OBJ);
-        
-        return $uuid['uuid'];
+
+        foreach ($uuid as $id) {
+            $uuid = $id->uuid;
+        }
+
+        return $uuid;
+
     } catch (PDOException $e) {
+        
         return null;
     }
 };
 
 function getConnection(){
+    /*
+    $dbhost = 'localhost';
+    $dbuser = 'root';
+    $dbpass = '';
+    $dbname = 'naughtyhost';
+    */
     $dbhost = getenv('IP');
     $dbuser = getenv('C9_USER');
     $dbpass = "";
