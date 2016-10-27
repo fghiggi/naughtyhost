@@ -166,16 +166,11 @@ function getUUID(){
 };
 
 function getConnection(){
-    /*
-    $dbhost = 'localhost';
-    $dbuser = 'root';
-    $dbpass = '';
+    
+    $dbhost = 'naughtyhost.com';
+    $dbuser = 'naughtyhost';
+    $dbpass = 'teste';
     $dbname = 'naughtyhost';
-    */
-    $dbhost = getenv('IP');
-    $dbuser = getenv('C9_USER');
-    $dbpass = "";
-    $dbname = "c9";
 
     $dbh = new PDO("mysql:host=$dbhost;dbname=$dbname", $dbuser, $dbpass,array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
