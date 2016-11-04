@@ -21,7 +21,6 @@ $application->post('/clientes', 'post_http');
 
 $application->put('/clientes', 'put_http');
 
-
 function    get_clientes()
 {
     $sql = "select * from clientes";
@@ -104,6 +103,7 @@ function put_http()
     parse_str($params_str, $params_arr);
 
     $uuid = $params_arr['uuid'];
+    $status = $params_arr['status'];
 
     $sql0 = "select uuid FROM clientes WHERE uuid='$uuid' ";
     
@@ -126,7 +126,7 @@ function put_http()
         echo('{"status": 500,"message": "' . $e->getMessage() . '"}');
     }
     
-    $sql = "UPDATE clientes SET pago=1 where uuid='$uuid' ";
+    $sql = "UPDATE clientes SET pago=" . $status . " where uuid='$uuid' ";
     
     try {
         $db = getConnection();
@@ -166,10 +166,10 @@ function getUUID(){
 };
 
 function getConnection(){
-    
-    $dbhost = 'naughtyhost.com';
-    $dbuser = 'naughtyhost';
-    $dbpass = 'teste';
+
+    $dbhost = 'localhost';
+    $dbuser = 'root';
+    $dbpass = '';
     $dbname = 'naughtyhost';
 
     $dbh = new PDO("mysql:host=$dbhost;dbname=$dbname", $dbuser, $dbpass,array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));
